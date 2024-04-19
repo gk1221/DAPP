@@ -36,6 +36,7 @@ contract Event {
 
    function enter(uint selection) public payable {
        require(msg.value > 0.01 ether);
+       require(dueDate > block.timestamp);
        Player memory player = Player({
         account: msg.sender,
         price: msg.value,
@@ -87,4 +88,10 @@ contract Event {
         }
    }
    
+    function cancel() public {
+      require(msg.sender == manager);
+      for (uint i = 0 ; i < players.length ; i++) {
+        payable(players[i].account).transfer(players[i].price);
+      }
+    }
 }
