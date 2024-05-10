@@ -6,6 +6,7 @@ contract Event {
  address public manager;
  string public eventName;
  uint public dueDate;
+ bool public isAlive;
  Option[] public options;
  Player[] public players;
 
@@ -25,6 +26,7 @@ contract Event {
        manager = msg.sender;
        eventName = name;
        dueDate = due;
+       isAlive = true;
        for (uint i = 0 ; i < optionNames.length; i++) {
           options.push(Option({
             id: i,
@@ -37,6 +39,7 @@ contract Event {
    function enter(uint selection) public payable {
        require(msg.value > 0.01 ether);
        require(dueDate > block.timestamp);
+       require(isAlive);
        Player memory player = Player({
         account: msg.sender,
         price: msg.value,
@@ -51,8 +54,8 @@ contract Event {
        }
    }
 
-   function getProfile() public view returns (string memory, uint, Option[] memory, Player[] memory) {
-       return (eventName, dueDate, options, players);
+   function getProfile() public view returns (string memory, uint, Option[] memory, Player[] memory, bool) {
+       return (eventName, dueDate, options, players, isAlive);
    }
 
    function getWinnerCount(uint selection) public view returns (uint256) {
@@ -77,9 +80,12 @@ contract Event {
 
     function endEvent(uint selection) public {
         require(msg.sender == manager);
+        require(isAlive);
         uint256 winnerCount = getWinnerCount(selection);
         uint256 total = getTotalPrice();
         uint256 reward = total / winnerCount;
+
+        isAlive = false;
 
         for (uint i = 0 ; i < players.length ; i++) {
             if (players[i].selection == selection) {
@@ -90,6 +96,8 @@ contract Event {
    
     function cancel() public {
       require(msg.sender == manager);
+      require(isAlive);
+      isAlive = false;
       for (uint i = 0 ; i < players.length ; i++) {
         payable(players[i].account).transfer(players[i].price);
       }
