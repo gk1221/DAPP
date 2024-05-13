@@ -1,0 +1,160 @@
+Prompt
+你是一個senior DApp back-end engineer，請使用Python的web3.py撰寫3個class，class name 和 function 說明如下:
+1.DeployContract:class的參數是account address:str, name:str, optionNames:list, due:int。 在與Ganache(http://127.0.0.1:7545)建立連線後，使用utf8編碼讀取"Event.sol"的智能合約的語法，用compile_standard 編譯語法後，將智能合約部署至Ganache上的指定account，並將合約的abi存成json。
+
+compile_standard的格式應該是:
+compile_standard(
+            {
+                "language": "Solidity",
+                "sources": {"Event.sol": {"content": contract_source_code}},
+                "settings": {
+                    "outputSelection": {
+                        "*": {
+                            "*": ["abi", "metadata", "evm.bytecode", "evm.bytecode.sourceMap"] 
+                            # output needed to interact with and deploy contract 
+                        }
+                    }
+                }
+            },
+            solc_version="0.8.19"
+        )
+
+2.Contract: class的參數是contract address，依據合約內容和參數，建立下面每一個function:
+cancel(),
+dueDate(),
+endEvent(uint256),
+enter(uint256),
+eventName(),
+getProfile(),
+getTotalPrice(),
+getWinnerCount(uint256),
+manager(),
+options(uint256),
+players(uint256)
+
+補充:
+1.class 的 __init__() 會讀取 contract abi
+2.endEvent(), cancel(), enter()這3個function會進行交易(build_transaction)，需要wallet address跟wallet secret key 來簽署交易後產生新的block。
+3.dueDate(), eventName(), getProfile(), getTotalPrice(), getWinnerCount(), manager(), options(), players() 只是單純call function後return 結果。
+
+合約內容:
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.6.0 <0.9.0;
+
+
+contract Event {
+ address public manager;
+ string public eventName;
+ uint public dueDate;
+ Option[] public options;
+ Player[] public players;
+
+   struct Option {
+      uint id;
+      string name;
+      uint256 count;
+   }
+   
+   struct Player {
+       address account;
+       uint256 price;
+       uint selection;
+   }
+
+   constructor(string memory name, string[] memory optionNames, uint due) {
+       manager = msg.sender;
+       eventName = name;
+       dueDate = due;
+       for (uint i = 0 ; i < optionNames.length; i++) {
+          options.push(Option({
+            id: i,
+            name: optionNames[i],
+            count: 0
+          }));
+       }
+   }
+
+   function enter(uint selection) public payable {
+       require(msg.value > 0.01 ether);
+       require(dueDate > block.timestamp);
+       Player memory player = Player({
+        account: msg.sender,
+        price: msg.value,
+        selection: selection
+       });
+       players.push(player);
+
+       for (uint i = 0 ; i < options.length ; i++) {
+          if (options[i].id == selection) {
+            options[i].count++;
+          }
+       }
+   }
+
+   function getProfile() public view returns (string memory, uint, Option[] memory, Player[] memory) {
+       return (eventName, dueDate, options, players);
+   }
+
+   function getWinnerCount(uint selection) public view returns (uint256) {
+      //統計贏家
+      uint256 winnerCount = 0;
+      for (uint i = 0 ; i < players.length ; i++) {
+        if (players[i].selection == selection) {
+            winnerCount++;
+        }
+      }
+      return winnerCount;
+   }
+
+   function getTotalPrice() public view returns (uint256) {
+      //取得總獎金額
+      uint256 total = 0;
+      for (uint i = 0 ; i < players.length ; i++) {
+        total = total + players[i].price;
+      } 
+      return total;
+   }
+
+    function endEvent(uint selection) public {
+        require(msg.sender == manager);
+        uint256 winnerCount = getWinnerCount(selection);
+        uint256 total = getTotalPrice();
+        uint256 reward = total / winnerCount;
+
+        for (uint i = 0 ; i < players.length ; i++) {
+            if (players[i].selection == selection) {
+                payable(players[i].account).transfer(reward);
+            }
+        }
+   }
+   
+    function cancel() public {
+      require(msg.sender == manager);
+      for (uint i = 0 ; i < players.length ; i++) {
+        payable(players[i].account).transfer(players[i].price);
+      }
+    }
+}
+
+3. 
+
+注意事項:
+1.import 的套件:
+- from web3 import Web3
+- from solcx import compile_standard, install_solc
+- import time
+- import json
+
+在import 套件後，請 install_solc('0.8.19')
+
+2.每一行程式碼都加上註解
+
+3.請注意使用正確的function 名稱，如:
+build_transaction()
+get_transaction_count()
+sign_transaction()
+send_raw_transaction()
+
+4.Event.sol的檔名是"./contract/Event.sol"
+
+5.abi json的檔名是"./contract/abi.json"
