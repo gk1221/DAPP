@@ -9,6 +9,7 @@ contract Event {
  bool public isAlive;
  Option[] public options;
  Player[] public players;
+ Option public resultOption;
 
    struct Option {
       uint id;
@@ -37,8 +38,10 @@ contract Event {
    }
 
    function enter(uint selection) public payable {
+       require(msg.sender != manager);
        require(msg.value > 0.01 ether);
-       require(dueDate > block.timestamp);
+      //  DEMO 先註解掉
+      //  require(dueDate > block.timestamp);
        require(isAlive);
        Player memory player = Player({
         account: msg.sender,
@@ -54,8 +57,8 @@ contract Event {
        }
    }
 
-   function getProfile() public view returns (string memory, uint, Option[] memory, Player[] memory, bool) {
-       return (eventName, dueDate, options, players, isAlive);
+   function getProfile() public view returns (string memory, uint, Option[] memory, Player[] memory, bool, Option memory) {
+       return (eventName, dueDate, options, players, isAlive, resultOption);
    }
 
    function getWinnerCount(uint selection) public view returns (uint256) {
@@ -83,15 +86,31 @@ contract Event {
         require(isAlive);
         uint256 winnerCount = getWinnerCount(selection);
         uint256 total = getTotalPrice();
-        uint256 reward = total / winnerCount;
+        
+        for (uint i = 0 ; i < options.length ; i++) {
+          if (options[i].id == selection) {
+            resultOption = options[i];
+            break;
+          }
+        }
 
-        isAlive = false;
+        if (winnerCount == 0) {
+          cancel();
+        } else {
+          isAlive = false;
+          //手續費 5%
+          uint256 fee = total / 20;
 
-        for (uint i = 0 ; i < players.length ; i++) {
+          payable(manager).transfer(fee);
+
+          uint256 reward = (total-fee) / winnerCount;
+          for (uint i = 0 ; i < players.length ; i++) {
             if (players[i].selection == selection) {
                 payable(players[i].account).transfer(reward);
             }
+          }
         }
+        
    }
    
     function cancel() public {

@@ -130,6 +130,9 @@ class Contract:
         """
         # Call manager function
         return self.contract.functions.manager().call()
+    
+    def resultOption(self):
+        return self.contract.functions.resultOption().call()
 
     def enter(self, selection):
         """
@@ -240,12 +243,10 @@ class BlockInformation:
         # traverse all contract_address and get contract's detail
         df["eventName"] = df["contract_address"].apply(lambda x : Contract(x, self.wallet_secret_key).eventName())
         df["dueDate"] = df["contract_address"].apply(lambda x : Contract(x, self.wallet_secret_key).dueDate())
-        df["Profile"] = df["contract_address"].apply(lambda x : Contract(x, self.wallet_secret_key).getProfile())
-        df["Options"] = df["Profile"].apply(lambda x : x[2])
+        df["Options"] = df["contract_address"].apply(lambda x : Contract(x, self.wallet_secret_key).getProfile()[2])
         df["isAlive"] = df["contract_address"].apply(lambda x : Contract(x, self.wallet_secret_key).isAlive())
-
-        df = df.drop(columns = "Profile")
-
+        df["resultOption"] = df["contract_address"].apply(lambda x : Contract(x, self.wallet_secret_key).resultOption()[1])
+        
         return df.to_dict("records")
 
     def get_action_log(self):
@@ -275,9 +276,11 @@ class BlockInformation:
                        }
                 
                 rows.append(row)
-            
-        df = pd.DataFrame(rows)
-        return df
+        
+        if len(rows) == 0:
+            return pd.DataFrame(columns = ["timestamp", "function_name", "selection", "from", "to", "value"])
+        else:
+            return pd.DataFrame(rows)
 
 def private_key_to_account_address(private_key):
     return Account.from_key(private_key).address

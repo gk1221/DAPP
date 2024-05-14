@@ -26,13 +26,14 @@ def button_setting():
         padding-top: 200px !important;
         padding-bottom: 200px !important;
         font-size: 50px;
-        background-color: #a0cbe8;
-        border-color: #a0cbe8;
-    }
-    button:hover[kind="primary"] {
-        
+        color: white;
         background-color: #4e79a7;
         border-color: #4e79a7;
+    }
+    button:hover[kind="primary"] {
+        color: black;
+        background-color: #a0cbe8;
+        border-color: #a0cbe8;
     }
     </style>
     """,
