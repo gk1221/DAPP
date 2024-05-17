@@ -4,7 +4,7 @@ from datetime import datetime
 # streamlit
 import streamlit as st
 from streamlit_tags import st_tags
-from scripts.setting import default_setting, back_to_home
+from scripts.setting import default_setting, back_to_home, rerun_page
 if "user_key" not in st.session_state:
     st.switch_page("app.py")
 
@@ -28,6 +28,7 @@ if len(event_list) > 0:
 default_setting()
 st.markdown("## 👑活動管理")
 back_to_home()
+rerun_page()
 
 with st.expander("➕建立活動"):
     with st.form("create_event", border = False):
@@ -48,7 +49,7 @@ with st.expander("➕建立活動"):
             elif len(list(set(options))) != len(options):
                 st.warning("有重複的選項，請確認")
             else:
-                DeployContract(account_address = user_address,
+                DeployContract(wallet_secret_key = user_key,
                                name = title,
                                optionNames = options,
                                due = deadline).deploy()
@@ -68,18 +69,23 @@ with st.expander("👀檢視活動"):
             dueDate = event["dueDate"]
             isAlive = event["isAlive"]
             resultOption = event["resultOption"]
-            options = [f"{option[1]}({option[2]}人下注)" for option in options]
+            TotalPrice = event["TotalPrice"]
+            counts = sum([option[2] for option in options])
+            if counts == 0:
+                counts = 1
+            options = [f"{option[1]}" + "({:.1%})".format(option[2] / counts) for option in options]
 
             with st.form(key = f"event_{contract_address}"):
-                st.write(timestamp.strftime("%Y-%m-%d %H:%M:%S") + " " + eventName)
+                st.write(f'{timestamp.strftime("%Y-%m-%d %H:%M:%S")}~{datetime.fromtimestamp(dueDate).strftime("%Y-%m-%d %H:%M:%S")}' + " | " + eventName)
                 # options
                 select = st.radio("請選擇正確答案", options, horizontal = True)
+                st.write(f"總下注金額: {TotalPrice} ETH")
                 
                 # 還沒被結束的事件
                 if isAlive:
                     
                      # 你不是莊家
-                    if contract_manager != private_key_to_account_address(user_key):
+                    if contract_manager != user_address:
                         vote = st.form_submit_button("你不是莊家", use_container_width = True, disabled = True)
 
                     # 時間到了，可以輸入正確答案結束活動
@@ -101,7 +107,10 @@ with st.expander("👀檢視活動"):
                 if vote:
                     selection = options.index(select)
                     Contract(contract_address, wallet_secret_key = user_key).endEvent(selection)
-                    st.success(f"遊戲結束，最後獲勝者為選擇「{select}」")
+                    if [option[2] for option in event["Options"]][selection] == 0:
+                        st.success(f"遊戲結束，無人獲勝，將返還給每位玩家原下注金額。")
+                    else:
+                        st.success(f"遊戲結束，最後獲勝者為選擇「{select}」")
 
 with st.expander("➖取消活動"):
     if len(event_list) > 0:

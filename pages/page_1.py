@@ -22,7 +22,7 @@ back_to_home()
 
 with st.expander("💰錢包資訊", expanded = True):
     st.write(f"你的錢包位址: {block_information.wallet_address}")
-    eth = "{:,.0f}".format(block_information.wallet_balance)
+    eth = "{:,.5f}".format(block_information.wallet_balance)
     st.write(f"你的錢包餘額: {eth} ETH")
 
 with st.expander("🎲已下注清單"):
@@ -41,6 +41,10 @@ with st.expander("🎲已下注清單"):
         df["selection"] = df.apply(lambda x : x["Options"][x["selection"]], axis = 1)
         df = df[["timestamp", "eventName", "selection", "resultOption", "value"]]
         df.columns = column_name
+        df["獲勝"] = "❔"
+        df.loc[(df["正確答案"] != "") & (df["下注選項"] == df["正確答案"]), "獲勝"] = "✔️"
+        df.loc[(df["正確答案"] != "") & (df["下注選項"] != df["正確答案"]), "獲勝"] = "❌"
+        df["下注金額"] = df["下注金額"].astype(str) + " ETH"
     # 沒有下注
     else:
         df = pd.DataFrame(columns = column_name)

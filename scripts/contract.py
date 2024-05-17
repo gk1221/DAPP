@@ -14,7 +14,7 @@ class DeployContract:
     """
     DeployContract class deploys the Event contract to Ganache and saves the contract's ABI as JSON.
     """
-    def __init__(self, account_address, name, optionNames, due):
+    def __init__(self, wallet_secret_key, name, optionNames, due):
         """
         Initializes the DeployContract object with the constructor parameters of the Event contract.
         :param account_address: Address of the account deploying the contract.
@@ -22,7 +22,7 @@ class DeployContract:
         :param optionNames: List of option names.
         :param due: Due date of the event.
         """
-        self.account_address = account_address
+        self.account_address = Account.from_key(wallet_secret_key).address
         self.name = name
         self.optionNames = optionNames
         self.due = due
@@ -99,7 +99,8 @@ class Contract:
         Returns the total price of the event.
         """
         # Call getTotalPrice function
-        return self.contract.functions.getTotalPrice().call()
+        wei = self.contract.functions.getTotalPrice().call()
+        return int(self.web3.from_wei(wei, unit = "ether"))
     
     def getWinnerCount(self, selection):
         return self.contract.functions.getWinnerCount(selection).call()
@@ -205,8 +206,8 @@ class BlockInformation:
         self.wallet_secret_key = wallet_secret_key
         self.web3 = Web3(Web3.HTTPProvider(GANACHE_URL))  # Connect to Ganache
         self.lastest_block_number = self.web3.eth.block_number
-        self.wallet_balance = int(self.web3.from_wei(self.web3.eth.get_balance(self.wallet_address),
-                                                     unit = "ether"))
+        self.wallet_balance = round(self.web3.from_wei(self.web3.eth.get_balance(self.wallet_address),
+                                                     unit = "ether"), 5)
 
         # Read contract ABI from JSON
         with open(ABI_PATH, "r") as abi_file:
@@ -246,6 +247,7 @@ class BlockInformation:
         df["Options"] = df["contract_address"].apply(lambda x : Contract(x, self.wallet_secret_key).getProfile()[2])
         df["isAlive"] = df["contract_address"].apply(lambda x : Contract(x, self.wallet_secret_key).isAlive())
         df["resultOption"] = df["contract_address"].apply(lambda x : Contract(x, self.wallet_secret_key).resultOption()[1])
+        df["TotalPrice"] = df["contract_address"].apply(lambda x : Contract(x, self.wallet_secret_key).getTotalPrice())
         
         return df.to_dict("records")
 

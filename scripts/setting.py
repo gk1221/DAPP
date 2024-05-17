@@ -41,14 +41,18 @@ def button_setting():
     )
 
 def back_to_home():
-    if st.button("返回首頁", use_container_width = True):
+    if st.button("⬅️返回首頁", use_container_width = True):
         st.switch_page("pages/home.py")
     
 def back_to_login():
-    if st.button("重新連結錢包", use_container_width = True):
+    if st.button("🔗重新連結錢包", use_container_width = True):
         st.switch_page("app.py")
 
 def get_path(name):
     config = ConfigParser()
     config.read("./config.ini")
     return config["source"][name]
+
+def rerun_page():
+    if st.button("🔄重整此頁面", use_container_width = True):
+        st.rerun()

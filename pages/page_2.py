@@ -16,11 +16,14 @@ block_information = BlockInformation(wallet_secret_key = user_key)
 # from call function
 event_list = block_information.contract_creation
 
-# isAlive == True and 你不是莊家 才可下注
-# DEMO 先不卡控 已經截止的事件 不能下注
+# 
 if len(event_list) > 0:
+    # isAlive == True 才可下注
     event_list = [event for event in event_list if event["isAlive"]]
+    # 你不是莊家 才可下注
     event_list = [event for event in event_list if event["contract_manager"] != user_address]
+    # 卡控 已經截止的事件 不能下注
+    event_list = [event for event in event_list if event["dueDate"] > int(datetime.now().timestamp())]
 
 # main page
 default_setting()
